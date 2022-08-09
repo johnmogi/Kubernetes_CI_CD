@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: ksrebuildsimple 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ksrebuildsimple
+  template:
+    metadata:
+      labels:
+        app: ksrebuildsimple 
+    spec:
+      containers:
+        - name: ksrebuildsimple 
+          image: weightapp.azurecr.io/ksrebuildsimple
+          ports:
+          - containerPort: 80
