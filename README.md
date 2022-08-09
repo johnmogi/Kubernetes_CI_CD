@@ -142,3 +142,146 @@ spec:
 
 
 az aks show --resource-group weightapp --name k8sweight --query "servicePrincipalProfile.clientId"
+
+
+issues:
+
+1. ssl not configured correctly on agent- no access to do ssh/ helm install.
+2. no CI CD process - only CI, need to extend into production-
+seek out the last repo with the process
+
+
+
+
+k run --name measurements -p 5432:5432 -e 'POSTGRES_PASSWORD=09YQiXJ3m2Qe' appuserfordb
+kubectl run postgres --image=postgres
+
+kubectl run postgres-client --rm --tty -i --restart='Never' --image postgres:11 --env="PGPASSWORD=09YQiXJ3m2Qe" --command -- psql -h postgresdb -U appuserfordb
+
+install postgres with persistance inside k8s on aks 
+
+dep. process-
+add a build stage for db - rejected
+
+easiest option:
+manually create a pod for db
+inside run the postgres docker
+
+https://severalnines.com/blog/using-kubernetes-deploy-postgresql/
+
+postgres-configmap.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  labels:
+    app: postgres
+data:
+  POSTGRES_DB: postgresdb
+  POSTGRES_USER: postgresadmin
+  POSTGRES_PASSWORD: admin123
+
+last resort - 
+rebuild a managed postgresql inside the same vnet (manually) / or i would need peer connection.
+
+best scenerio:
+helm chart install postgres statefull
+
+kubectl run postgresql-postgresql-client --rm --tty -i --restart='Never' --namespace staging --image bitnami/postgresql --env="PGPASSWORD=09YQiXJ3m2Qe" --command -- psql --host 0.0.0.0 -U appuserfordb
+
+
+not sure:
+# Create multiple YAML objects from stdin
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox-sleep
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.28
+    args:
+    - sleep
+    - "1000000"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox-sleep-less
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.28
+    args:
+    - sleep
+    - "1000"
+EOF
+
+
+kubectl apply -f - <<EOF  > postgres-pvc-pv.yaml
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: postgres-pv-volume  # Sets PV's name
+  labels:
+    type: local  # Sets PV's type to local
+    app: postgres
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 5Gi # Sets PV Volume
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/mnt/data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: postgres-pv-claim  # Sets name of PVC
+  labels:
+    app: postgres
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany  # Sets read and write access
+  resources:
+    requests:
+      storage: 5Gi  # Sets volume size
+EOF
+
+
+
+
+
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8sweight
+EOF
+
+<!-- K
+cat << EOF > ~/postgres.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  containers:
+  - image: postgres:alpine3.16
+    name: postgres
+    ports:
+    - containerPort: 5432
+EOF -->
+
+
+https://devopscube.com/create-kubernetes-yaml/
+
+kubectl run mypod --image=nginx:latest \
+            --labels type=web \
+            --dry-run=client -o yaml > mypod.yaml
